@@ -1,3 +1,6 @@
+#-*- coding:utf-8 -*-
+
+import os
 from whitebox.tree.node import OptBitNode as Bit
 from whitebox.utils import str2bin, bin2str
 
@@ -27,7 +30,7 @@ RawSerializer().serialize_to_file(ct, "circuits/aes10.bin")
 
 # c) compute reference AES to verify correctness
 from whitebox.ciphers.AES.aes import encrypt
-pt = open("build/plain").read()
+pt = os.urandom(64)
 ct = "".join(encrypt(pt[i:i+16], KEY, nr=NR) for i in xrange(0, len(pt), 16))
 open("build/cipher", "w").write(ct)
 
