@@ -57,7 +57,7 @@ class Reader(object):
         self.step_bytes = min(self.step_bytes, self.trace_bytes)
 
         # may be ceil? not accurate!
-        self.num_windows = (self.trace_bytes - self.window_bytes) // self.step_bytes + 1
+        self.num_windows = (self.trace_bytes - self.window_bytes + self.step_bytes - 1) // self.step_bytes + 1
 
         # not sure if working with longs is faster than with arrays
         # or some other structure, may be even makes sense to write C backend
@@ -79,10 +79,10 @@ class Reader(object):
             for v in self.new_vectors:
                 self.vectors.append(v)
                 self.vectors.popleft()
+            self.offset += self.step_bytes
 
             yield self.vectors
 
-            self.offset += self.step_bytes
 
     def advance(self, num_bytes):
         self.new_vectors = [0] * (num_bytes * 8)
