@@ -32,7 +32,7 @@ STOP_ON_FIRST_MATCH = 0
 ONE_CANDIDATE_PER_SBOX = True
 
 # second order should break 1-st order linear masking
-ENABLE_SECOND_ORDER = 1
+ENABLE_SECOND_ORDER = 0
 
 # attack last S-Box?
 CT_SIDE = REVERSE
