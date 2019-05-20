@@ -128,3 +128,9 @@ $ daredevil -c daredevil.config
 ```bash
 $ sage attacks/analyze_linalg_1st.py 128 100 25
 ```
+
+See the brief  summary on the masking schemes and applicable attacks:
+
+[](./attacks_summary.png)
+
+Note that fault attacks are not implemented yet in the framework and there are no protections against them as well.
