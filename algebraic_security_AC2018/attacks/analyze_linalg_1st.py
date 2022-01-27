@@ -57,18 +57,18 @@ pts = []
 cts = []
 readers = []
 
-for i in xrange(NTRACES):
+for i in range(NTRACES):
     f_trace = "./traces/%04d.bin" % i
     f_pt = "./traces/%04d.pt" % i
     f_ct = "./traces/%04d.ct" % i
-    pt = open(f_pt).read()
-    ct = open(f_ct).read()
+    pt = open(f_pt, 'rb').read()
+    ct = open(f_ct, 'rb').read()
     pts.append(pt)
     cts.append(ct)
     readers.append(Reader(f_trace, reverse=REVERSE, window=WINDOW, step=STEP))
 
 traces_size = os.stat(f_trace).st_size
-print "Total traces:", NTRACES, "of size", "%.1fK (%d)" % (traces_size / 1000.0, traces_size)
+print("Total traces:", NTRACES, "of size", "%.1fK (%d)" % (traces_size / 1000.0, traces_size))
 
 
 #== Generate predicted vectors from plaintext/ciphertext and key guess
@@ -79,15 +79,15 @@ for si, lin, k in product(BYTE_INDICES, LINS, KS):
     for p, c in zip(pts, cts):
         if k is None:
             if CT_SIDE:
-                x = ord(c[si])
+                x = c[si]
             else:
-                x = ord(p[si])
+                x = p[si]
         else:
             if CT_SIDE:
-                x = ord(c[si])
+                x = c[si]
                 x = rsbox[x ^ k]
             else:
-                x = ord(p[si])
+                x = p[si]
                 x = sbox[x ^ k]
         target.append(scalar_bin(x, lin))
     assert len(target) == NTRACES
@@ -95,7 +95,7 @@ for si, lin, k in product(BYTE_INDICES, LINS, KS):
     targets.append((target, (si, lin, k, 0)))
     targets.append((target + VECMASK, (si, lin, k, 1)))
 
-print "Generated %d target vectors" % len(targets)
+print("Generated %d target vectors" % len(targets))
 
 target_mat = matrix(GF(2), [target for target, kinfo in targets])
 
@@ -106,34 +106,34 @@ i_window = 0
 while 1:
     i_window += 1
     if REVERSE:
-        print "Window %d" % (n_windows - i_window + 1), "/", n_windows,
+        print("Window %d" % (n_windows - i_window + 1), "/", n_windows,)
     else:
-        print "Window %d" % i_window, "/", n_windows,
+        print("Window %d" % i_window, "/", n_windows,)
 
     vectors = []
     for i_reader, reader in enumerate(readers):
         try:
             wnd_off, wnd = next(reader)
         except StopIteration:
-            print "No window %d for reader %d (Finished?)" % (i_window, i_reader)
+            print("No window %d for reader %d (Finished?)" % (i_window, i_reader))
             quit()
         assert wnd
 
         # not sure if working with longs is faster than with arrays or Sage's vectors..
         if not vectors:
-            vectors = [0 for _ in xrange(len(wnd))]
+            vectors = [0 for _ in range(len(wnd))]
         for i, b in enumerate(wnd):
             val = ord(b) & 1
             vectors[i] = (vectors[i] << 1) | val
 
-    print "offset %d-%d" % (wnd_off, wnd_off+WINDOW-1)
-    print "   ", len(vectors), "vectors"
+    print("offset %d-%d" % (wnd_off, wnd_off+WINDOW-1))
+    print("   ", len(vectors), "vectors")
 
     vectors_rev = set(vectors)
-    print "   ", len(vectors_rev), "unique vectors"
-    print "   ", len(targets), "target vectors"
+    print("   ", len(vectors_rev), "unique vectors")
+    print("   ", len(targets), "target vectors")
 
-    candidates = [set() for _ in xrange(16)]
+    candidates = [set() for _ in range(16)]
     key_found = False
 
     columns = [list(tobin(vec, NTRACES)) for vec in vectors_rev if vec not in (0, MASK)]
@@ -141,7 +141,10 @@ while 1:
 
     # trick to use kernel of M for quick verification of solution
     parity_checker = mat.right_kernel().matrix().transpose()
-    check = target_mat * parity_checker
+    try:
+        check = target_mat * parity_checker
+    except:
+        continue
     check = map(bool, check.rows())
     for parity, (target, kinfo) in zip(check, targets):
         if parity:
@@ -154,26 +157,26 @@ while 1:
         # assert sol * mat == target
 
         si, lin, k, const1 = kinfo
-        print "MATCH:",
-        print "sbox #%d," % si,
-        print "lin.mask 0x%02x," % lin,
-        print "key 0x%02x=%r," % (k, chr(k)),
-        print "negated? %s," % bool(const1),
+        print("MATCH:",)
+        print("sbox #%d," % si,)
+        print("lin.mask 0x%02x," % lin,)
+        print("key 0x%02x=%r," % (k, chr(k)),)
+        print("negated? %s," % bool(const1),)
         # linear combination indexes (may be non-unique)
         inds = [wnd_off + i for i, take in enumerate(sol) if take]
-        print "indexes", "%d...%d (distance %d)" % (min(inds), max(inds), max(inds)-min(inds)), inds,
-        print
+        print("indexes", "%d...%d (distance %d)" % (min(inds), max(inds), max(inds)-min(inds)), inds,)
+        print()
 
         candidates[si].add(k)
         key_found = True
 
     if key_found:
-        print
-        print "Key candidates found:"
+        print()
+        print("Key candidates found:")
         for si, cands in enumerate(candidates):
             if cands:
-                print "S-Box #%d: %s" % (si, ",".join("0x%02x(%r)" % (c, chr(c)) for c in cands))
-        print
+                print("S-Box #%d: %s" % (si, ",".join("0x%02x(%r)" % (c, chr(c)) for c in cands)))
+        print()
 
     if key_found and STOP_ON_FIRST_MATCH:
         quit()
